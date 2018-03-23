@@ -35,6 +35,7 @@ namespace Graphics {
     std::vector<std::function<void(void)>> draw_pipeline;
     // correspond with key_cache to programmatically register key callbacks
     std::function<void(void)> fire_callback[KEY_CACHE_SIZE];
+    std::function<void(unsigned char, int, int)> ext_key_function;
     int main_window;
     int mouse_old_x = 0;
     int mouse_old_y = 0;
@@ -57,6 +58,10 @@ namespace Graphics {
     
     void register_fire(std::function<void(void)> cb, int key) {
         fire_callback[key] = cb;
+    }
+    
+    void ext_key_callback(std::function<void(unsigned char, int, int)> cb) {
+        ext_key_function = cb;
     }
     
     Physics::Vector3 get_camera_direction() {
@@ -432,6 +437,11 @@ namespace Graphics {
         // Key registry at keypress
         if (fire_callback[key] != nullptr) {
             fire_callback[key]();
+        }
+        
+        // outward facing callback
+        if (ext_key_function != nullptr) {
+            ext_key_function(key, x, y);
         }
 
         if (key == ESC_KEY) { // ESC key

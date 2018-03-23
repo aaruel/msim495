@@ -52,4 +52,28 @@ namespace Physics {
         }
     }
     
+    
+    
+    // World //
+    ///////////
+    
+    void World::start_frame() {
+        RigidBodies::iterator b = bodies.begin();
+        for (; b != bodies.end(); ++b) {
+            b->clear_accumulator();
+            b->calculate_derived_data();
+        }
+    }
+    
+    void World::integrate(real duration) {
+        RigidBodies::iterator b = bodies.begin();
+        for (; b != bodies.end(); ++b) {
+            b->integrate(duration);
+        }
+    }
+    
+    void World::run_physics(real duration) {
+        
+        integrate(duration);
+    }
 }

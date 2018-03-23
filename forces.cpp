@@ -8,6 +8,7 @@
 
 #include "forces.h"
 #include "core.h"
+#include <cmath>
 
 namespace Physics {
     // Force Generator //
@@ -117,5 +118,85 @@ namespace Physics {
         Vector3 acceleration = (target - position) * (1.0f / duration * duration)
             - particle->get_velocity() * duration;
         particle->add_impulse(acceleration * particle->get_mass());
+    }
+    
+    
+    
+    ///////////////////////// RigidBody /////////////////////////
+    
+    
+    
+    // Gravity //
+    /////////////
+    
+    void Gravity::update_force(RigidBody * body, real duration) {
+        if (!body->has_finite_mass()) return;
+        
+        Vector3 c_gravity = gravity * body->get_mass();
+        body->add_force(c_gravity);
+    }
+    
+    
+    
+    // Spring //
+    ////////////
+    
+    Spring::Spring(
+        Vector3 &left_connection_point,
+        Vector3 &right_connection_point,
+        RigidBody * other,
+        real spring_constant,
+        real rest_length
+    ) {
+        
+    };
+    
+    void Spring::update_force(RigidBody * body, real duration) {
+        Vector3 left_piws = body->get_point_in_world_space(connection_point_left);
+        Vector3 right_piws = body->get_point_in_world_space(connection_point_right);
+        
+        Vector3 force = left_piws - right_piws;
+        
+        real magnitude = force.magnitude();
+        magnitude = std::abs(magnitude);
+        magnitude *= spring_constant;
+        
+        force.normalize();
+        force *= -magnitude;
+        body->add_force_at_point(force, left_piws);
+    }
+    
+    // Force Registry //
+    ////////////////////
+    
+        void ForceRegistry::add(
+        RigidBody * RigidBody,
+        ForceGenerator * fg
+    ) {
+        links.push_back(ForceRegistration{RigidBody, fg});
+    }
+    
+    void ForceRegistry::remove(
+        RigidBody * RigidBody,
+        ForceGenerator * fg
+    ) {
+        int i = 0;
+        for (ForceRegistration pfl : links) {
+            if (pfl.body == RigidBody && pfl.fg == fg) {
+                links.erase(links.begin() + i);
+            }
+            ++i;
+        }
+    }
+    
+    void ForceRegistry::clear() {
+        links.clear();
+    }
+    
+    void ForceRegistry::update_forces(real duration) {
+        Registry::iterator i = links.begin();
+        for (; i != links.end(); ++i) {
+            i->fg->update_force(i->body, duration);
+        }
     }
 };

@@ -13,6 +13,7 @@
 #include <vector>
 #include <math.h>
 #include <functional>
+#include <float.h>
 
 namespace Util {
     /**
@@ -285,6 +286,628 @@ namespace Physics {
          * Handle particles physics at
          */
         void integrate(real time);
+    };
+    
+    
+    
+    class Quaternion {
+    public:
+        union {
+            struct {
+                union {real r; real w;}; // real
+                union {real i; real x;}; // complex
+                union {real j; real y;}; // complex
+                union {real k; real z;}; // complex
+            };
+            
+            real data[4];
+        };
+        
+        Quaternion() : r(1), i(0), j(0), k(0) {}
+        
+        Quaternion(
+            real r, real i,
+            real j, real k
+        ) : r(r), i(i), j(j), k(k) {}
+        
+        void print() {
+            printf("%%{r: %f, i: %f, j: %f, k: %f}\n", r, i, j, k);
+        }
+        
+        void normalize() {
+            real d = r*r+i*i+j*j+k*k;
+
+            // Check for zero length quaternion, and use the no-rotation
+            // quaternion in that case.
+            if (d < FLT_EPSILON) {
+                r = 1;
+                return;
+            }
+
+            d = ((real)1.0) / sqrtf(d);
+            r *= d;
+            i *= d;
+            j *= d;
+            k *= d;
+        }
+        
+        void operator *=(Quaternion &multiplier)
+        {
+            Quaternion q = *this;
+            
+            r = (
+                q.r*multiplier.r - q.i*multiplier.i
+                - q.j*multiplier.j - q.k*multiplier.k
+            );
+            
+            i = (
+                q.r*multiplier.i + q.i*multiplier.r
+                + q.j*multiplier.k - q.k*multiplier.j
+            );
+            
+            j = (
+                q.r*multiplier.j + q.j*multiplier.r
+                + q.k*multiplier.i - q.i*multiplier.k
+            );
+            
+            k = (
+                q.r*multiplier.k + q.k*multiplier.r
+                + q.i*multiplier.j - q.j*multiplier.i
+            );
+        }
+        
+        void add_scaled_vector(Vector3 vector, real scale) {
+            Quaternion q(
+                0,
+                vector.x * scale,
+                vector.y * scale,
+                vector.z * scale
+            );
+            
+            q *= *this;
+            r += q.r * ((real)0.5);
+            i += q.i * ((real)0.5);
+            j += q.j * ((real)0.5);
+            k += q.k * ((real)0.5);
+        }
+
+        void rotate_by_vector(Vector3& vector) {
+            Quaternion q(0, vector.x, vector.y, vector.z);
+            (*this) *= q;
+        }
+    };
+    
+    
+    
+    class Matrix3 {
+    /*
+     * Coincidentially, I have made SIMD implementations of Matrix4 and Vector4
+     * in the past, but it's in C and not exactly wieldy to reimplement in C++
+     * https://github.com/aaruel/CSERW/blob/master/math/mathMatrix.h
+     */
+    public:
+        typedef real mat3x3[9];
+        mat3x3 data;
+        
+        
+        
+    public:
+        Matrix3() {
+            data[0] = data[1] = data[2] = 0;
+            data[3] = data[4] = data[5] = 0;
+            data[6] = data[7] = data[8] = 0;
+        }
+        
+        Matrix3(Matrix3 * m) {
+            for (unsigned i = 0; i < 9; ++i) data[i] = m->data[i];
+        }
+    
+        Matrix3(
+            real c0, real c1, real c2,
+            real c3, real c4, real c5,
+            real c6, real c7, real c8
+        ) {
+            data[0] = c0; data[1] = c1; data[2] = c2;
+            data[3] = c3; data[4] = c4; data[5] = c5;
+            data[6] = c6; data[7] = c7; data[8] = c8;
+        }
+        
+        Matrix3 operator*(Matrix3 &o)
+        {
+            return Matrix3(
+                data[0]*o.data[0] + data[1]*o.data[3] + data[2]*o.data[6],
+                data[0]*o.data[1] + data[1]*o.data[4] + data[2]*o.data[7],
+                data[0]*o.data[2] + data[1]*o.data[5] + data[2]*o.data[8],
+
+                data[3]*o.data[0] + data[4]*o.data[3] + data[5]*o.data[6],
+                data[3]*o.data[1] + data[4]*o.data[4] + data[5]*o.data[7],
+                data[3]*o.data[2] + data[4]*o.data[5] + data[5]*o.data[8],
+
+                data[6]*o.data[0] + data[7]*o.data[3] + data[8]*o.data[6],
+                data[6]*o.data[1] + data[7]*o.data[4] + data[8]*o.data[7],
+                data[6]*o.data[2] + data[7]*o.data[5] + data[8]*o.data[8]
+            );
+        }
+        
+        static Matrix3 linear_interpolate(Matrix3 &a, Matrix3 &b, real prop) {
+            Matrix3 result;
+            
+            for (unsigned i = 0; i < 9; ++i) {
+                result.data[i] = a.data[i] * (1-prop) + b.data[i] * prop;
+            }
+            
+            return result;
+        }
+    
+        Vector3 operator*(Vector3 &v) {
+            return Vector3(
+                v.x * data[0] + v.y * data[1] + v.z * data[2],
+                v.x * data[3] + v.y * data[4] + v.z * data[5],
+                v.x * data[6] + v.y * data[7] + v.z * data[8]
+            );
+        }
+        
+        void set_inverse(Matrix3 &m)
+        {
+            real t4  = m.data[0]*m.data[4];
+            real t6  = m.data[0]*m.data[5];
+            real t8  = m.data[1]*m.data[3];
+            real t10 = m.data[2]*m.data[3];
+            real t12 = m.data[1]*m.data[6];
+            real t14 = m.data[2]*m.data[6];
+
+            // Calculate the determinant
+            real t16 = (
+                t4*m.data[8] - t6*m.data[7] - t8*m.data[8]
+                + t10*m.data[7] + t12*m.data[5] - t14*m.data[4]
+            );
+
+            // Make sure the determinant is non-zero.
+            if (t16 == (real)0.0f) return;
+            real t17 = 1 / t16;
+
+            data[0] =  (m.data[4]*m.data[8]-m.data[5]*m.data[7])*t17;
+            data[1] = -(m.data[1]*m.data[8]-m.data[2]*m.data[7])*t17;
+            data[2] =  (m.data[1]*m.data[5]-m.data[2]*m.data[4])*t17;
+            data[3] = -(m.data[3]*m.data[8]-m.data[5]*m.data[6])*t17;
+            data[4] =  (m.data[0]*m.data[8]-t14)*t17;
+            data[5] = -(t6-t10)*t17;
+            data[6] =  (m.data[3]*m.data[7]-m.data[4]*m.data[6])*t17;
+            data[7] = -(m.data[0]*m.data[7]-t12)*t17;
+            data[8] =  (t4-t8)*t17;
+        }
+        
+        Matrix3 inverse() {
+            Matrix3 result;
+            result.set_inverse(*this);
+            return result;
+        }
+        
+        void set_transpose(Matrix3 &m) {
+            data[0] = m.data[0];
+            data[1] = m.data[3];
+            data[2] = m.data[6];
+            data[3] = m.data[1];
+            data[4] = m.data[4];
+            data[5] = m.data[7];
+            data[6] = m.data[2];
+            data[7] = m.data[5];
+            data[8] = m.data[8];
+        }
+        
+        void set_orientation(Quaternion &q) {
+            data[0] = 1 - (2*q.j*q.j + 2*q.k*q.k);
+            data[1] = 2*q.i*q.j + 2*q.k*q.r;
+            data[2] = 2*q.i*q.k - 2*q.j*q.r;
+            data[3] = 2*q.i*q.j - 2*q.k*q.r;
+            data[4] = 1 - (2*q.i*q.i  + 2*q.k*q.k);
+            data[5] = 2*q.j*q.k + 2*q.i*q.r;
+            data[6] = 2*q.i*q.k + 2*q.j*q.r;
+            data[7] = 2*q.j*q.k - 2*q.i*q.r;
+            data[8] = 1 - (2*q.i*q.i  + 2*q.j*q.j);
+        }
+        
+        void set_inertia_tensor_coeffs(
+            real ix, real iy, real iz,
+            real ixy=0, real ixz=0, real iyz=0
+        ) {
+            data[0] = ix;
+            data[1] = data[3] = -ixy;
+            data[2] = data[6] = -ixz;
+            data[4] = iy;
+            data[5] = data[7] = -iyz;
+            data[8] = iz;
+        }
+        
+        void set_block_inertia_tensor(Vector3 &halfSizes, real mass) {
+            Vector3 squares = halfSizes.component_product(halfSizes);
+            set_inertia_tensor_coeffs(
+                0.3f*mass*(squares.y + squares.z),
+                0.3f*mass*(squares.x + squares.z),
+                0.3f*mass*(squares.x + squares.y)
+            );
+        }
+
+        Matrix3 transpose() {
+            Matrix3 result;
+            result.set_transpose(*this);
+            return result;
+        }
+        
+        Vector3 transform(Vector3 &v) {
+            return (*this) * v;
+        }
+    };
+    
+    
+    
+    class Matrix4 {
+    public:
+        typedef real mat4x4[12];
+        mat4x4 data;
+        
+        /**
+         * Not for use, pads data to 512 bits for alignment
+         */
+        real padding[4];
+        
+    public:
+        Vector3 operator*(Vector3 &v) {
+            return Vector3(
+                v.x * data[0] + v.y * data[1] + v.z * data[ 2] + data[ 3],
+                v.x * data[4] + v.y * data[5] + v.z * data[ 6] + data[ 7],
+                v.x * data[8] + v.y * data[9] + v.z * data[10] + data[11]
+            );
+        }
+        
+        Matrix4 operator*(const Matrix4 &o) const
+        {
+            Matrix4 result;
+            result.data[ 0] = (o.data[0]*data[0]) + (o.data[4]*data[1]) + (o.data[ 8]*data[ 2]);
+            result.data[ 4] = (o.data[0]*data[4]) + (o.data[4]*data[5]) + (o.data[ 8]*data[ 6]);
+            result.data[ 8] = (o.data[0]*data[8]) + (o.data[4]*data[9]) + (o.data[ 8]*data[10]);
+
+            result.data[ 1] = (o.data[1]*data[0]) + (o.data[5]*data[1]) + (o.data[ 9]*data[ 2]);
+            result.data[ 5] = (o.data[1]*data[4]) + (o.data[5]*data[5]) + (o.data[ 9]*data[ 6]);
+            result.data[ 9] = (o.data[1]*data[8]) + (o.data[5]*data[9]) + (o.data[ 9]*data[10]);
+
+            result.data[ 2] = (o.data[2]*data[0]) + (o.data[6]*data[1]) + (o.data[10]*data[ 2]);
+            result.data[ 6] = (o.data[2]*data[4]) + (o.data[6]*data[5]) + (o.data[10]*data[ 6]);
+            result.data[10] = (o.data[2]*data[8]) + (o.data[6]*data[9]) + (o.data[10]*data[10]);
+
+            result.data[ 3] = (o.data[3]*data[0]) + (o.data[7]*data[1]) + (o.data[11]*data[ 2]) + data[ 3];
+            result.data[ 7] = (o.data[3]*data[4]) + (o.data[7]*data[5]) + (o.data[11]*data[ 6]) + data[ 7];
+            result.data[11] = (o.data[3]*data[8]) + (o.data[7]*data[9]) + (o.data[11]*data[10]) + data[11];
+
+            return result;
+        }
+        
+        real get_determinant() {
+            return (
+                - data[8]*data[5]*data[ 2]
+                + data[4]*data[9]*data[ 2]
+                + data[8]*data[1]*data[ 6]
+                - data[0]*data[9]*data[ 6]
+                - data[4]*data[1]*data[10]
+                + data[0]*data[5]*data[10]
+            );
+        }
+        
+        void set_inverse(Matrix4 &m) {
+            // Make sure the determinant is non-zero.
+            real det = get_determinant();
+            if (det == 0) return;
+            det = ((real)1.0)/det;
+
+            data[ 0] = (-m.data[9]*m.data[6]+m.data[5]*m.data[10])*det;
+            data[ 4] = (+m.data[8]*m.data[6]-m.data[4]*m.data[10])*det;
+            data[ 8] = (-m.data[8]*m.data[5]+m.data[4]*m.data[ 9])*det;
+
+            data[ 1] = (+m.data[9]*m.data[2]-m.data[1]*m.data[10])*det;
+            data[ 5] = (-m.data[8]*m.data[2]+m.data[0]*m.data[10])*det;
+            data[ 9] = (+m.data[8]*m.data[1]-m.data[0]*m.data[ 9])*det;
+
+            data[ 2] = (-m.data[5]*m.data[2]+m.data[1]*m.data[ 6])*det;
+            data[ 6] = (+m.data[4]*m.data[2]-m.data[0]*m.data[ 6])*det;
+            data[10] = (-m.data[4]*m.data[1]+m.data[0]*m.data[ 5])*det;
+
+            data[3] = (
+                +m.data[9]*m.data[ 6]*m.data[ 3]
+                -m.data[5]*m.data[10]*m.data[ 3]
+                -m.data[9]*m.data[ 2]*m.data[ 7]
+                +m.data[1]*m.data[10]*m.data[ 7]
+                +m.data[5]*m.data[ 2]*m.data[11]
+                -m.data[1]*m.data[ 6]*m.data[11]
+            ) * det;
+            
+            data[7] = (
+                -m.data[8]*m.data[ 6]*m.data[ 3]
+                +m.data[4]*m.data[10]*m.data[ 3]
+                +m.data[8]*m.data[ 2]*m.data[ 7]
+                -m.data[0]*m.data[10]*m.data[ 7]
+                -m.data[4]*m.data[ 2]*m.data[11]
+                +m.data[0]*m.data[ 6]*m.data[11]
+            ) * det;
+            
+            data[11] = (
+                +m.data[8]*m.data[ 5]*m.data[ 3]
+                -m.data[4]*m.data[ 9]*m.data[ 3]
+                -m.data[8]*m.data[ 1]*m.data[ 7]
+                +m.data[0]*m.data[ 9]*m.data[ 7]
+                +m.data[4]*m.data[ 1]*m.data[11]
+                -m.data[0]*m.data[ 5]*m.data[11]
+            ) * det;
+        }
+        
+        void set_orientation_and_pos(const Quaternion &q, const Vector3 &pos) {
+            data[0] = 1 - (2*q.j*q.j + 2*q.k*q.k);
+            data[1] = 2*q.i*q.j + 2*q.k*q.r;
+            data[2] = 2*q.i*q.k - 2*q.j*q.r;
+            data[3] = pos.x;
+
+            data[4] = 2*q.i*q.j - 2*q.k*q.r;
+            data[5] = 1 - (2*q.i*q.i  + 2*q.k*q.k);
+            data[6] = 2*q.j*q.k + 2*q.i*q.r;
+            data[7] = pos.y;
+
+            data[8] = 2*q.i*q.k + 2*q.j*q.r;
+            data[9] = 2*q.j*q.k - 2*q.i*q.r;
+            data[10] = 1 - (2*q.i*q.i  + 2*q.j*q.j);
+            data[11] = pos.z;
+        }
+        
+        Vector3 transform_inverse(Vector3 &vector) {
+            Vector3 tmp = vector;
+            tmp.x -= data[3];
+            tmp.y -= data[7];
+            tmp.z -= data[11];
+            return Vector3(
+                tmp.x * data[0]
+                + tmp.y * data[4]
+                + tmp.z * data[8],
+
+                tmp.x * data[1]
+                + tmp.y * data[5]
+                + tmp.z * data[9],
+
+                tmp.x * data[2]
+                + tmp.y * data[6]
+                + tmp.z * data[10]
+            );
+        }
+        
+        Vector3 transform_direction(Vector3 &vector) {
+            return Vector3(
+                vector.x * data[0] +
+                vector.y * data[1] +
+                vector.z * data[2],
+
+                vector.x * data[4] +
+                vector.y * data[5] +
+                vector.z * data[6],
+
+                vector.x * data[8] +
+                vector.y * data[9] +
+                vector.z * data[10]
+            );
+        }
+        
+        Vector3 transform_inverse_direction(Vector3 &vector) {
+            return Vector3(
+                vector.x * data[0] +
+                vector.y * data[4] +
+                vector.z * data[8],
+
+                vector.x * data[1] +
+                vector.y * data[5] +
+                vector.z * data[9],
+
+                vector.x * data[2] +
+                vector.y * data[6] +
+                vector.z * data[10]
+            );
+        }
+        
+        void fill_GL_array(float array[16]) {
+            array[0] = (float)data[0];
+            array[1] = (float)data[4];
+            array[2] = (float)data[8];
+            array[3] = (float)0;
+
+            array[4] = (float)data[1];
+            array[5] = (float)data[5];
+            array[6] = (float)data[9];
+            array[7] = (float)0;
+
+            array[8] = (float)data[2];
+            array[9] = (float)data[6];
+            array[10] = (float)data[10];
+            array[11] = (float)0;
+
+            array[12] = (float)data[3];
+            array[13] = (float)data[7];
+            array[14] = (float)data[11];
+            array[15] = (float)1;
+        }
+        
+        static Vector3 world_to_local(Vector3 &world, Matrix4 transform) {
+            return transform.transform_inverse(world);
+        }
+        
+        static Vector3 local_to_world_direction(Vector3 &local, Matrix4 &transform) {
+            return transform.transform_direction(local);
+        }
+        
+        static Vector3 world_to_local_direction(Vector3 &world, Matrix4 &transform) {
+            return transform.transform_inverse_direction(world);
+        }
+        
+        Vector3 transform(Vector3 &v) {
+            return (*this) * v;
+        }
+    };
+    
+    
+    
+    /**
+     * Similar to the Particle class
+     */
+    class RigidBody {
+    protected:
+        real inverse_mass;
+        real linear_damping;
+        real angular_damping;
+        
+        Quaternion orientation;
+        
+        Vector3 position;
+        Vector3 velocity;
+        Vector3 acceleration;
+        Vector3 last_frame_accerlation;
+        Vector3 rotation;
+        Vector3 force_accumulator;
+        Vector3 torque_accumulator;
+        
+        Matrix3 inverse_inertia_tensor;
+        Matrix3 inverse_inertia_tensor_world;
+        Matrix4 transform_matrix;
+        
+        bool is_awake;
+        bool can_sleep;
+        
+    public:
+        void set_mass(real mass) {
+            if (mass <= 0.0) inverse_mass = 0.0;
+            else inverse_mass = 1.0 / mass;
+        }
+        void set_damping(real linear, real angular) {
+            linear_damping = linear;
+            angular_damping = angular;
+        }
+        void set_acceleration(Vector3 acc) { acceleration = acc; }
+        void set_velocity(Vector3 vel) { velocity = vel; }
+        void set_position(Vector3 pos) { position = pos; }
+        void set_rotation(Vector3 r) { rotation = r; }
+        void set_orientation(Quaternion o) { orientation = o; }
+        void set_awake(bool a) { is_awake = a; }
+        void set_can_sleep(bool cs) { can_sleep = cs; if (!can_sleep && !is_awake) set_awake(true); }
+        bool has_finite_mass() { return inverse_mass > 0; }
+        real get_mass() { return inverse_mass > 0 ? 1.f/inverse_mass : 0; }
+        Vector3 get_position() { return position; }
+        Vector3 get_velocity() { return velocity; }
+        Vector3 get_acceleration() { return acceleration; }
+        Matrix4 get_transform() { return transform_matrix; }
+        
+        void calculate_derived_data();
+        
+        Vector3 get_point_in_local_space(Vector3 &point) {
+            return transform_matrix.transform_inverse(point);
+        }
+        
+        Vector3 get_point_in_world_space(Vector3 &point) {
+            return transform_matrix.transform(point);
+        }
+        
+        Vector3 get_direction_in_local_space(Vector3 &direction) {
+            return transform_matrix.transform_inverse_direction(direction);
+        }
+        
+        Vector3 get_direction_in_world_space(Vector3 &direction) {
+            return transform_matrix.transform_direction(direction);
+        }
+        
+        void set_inertia_tensor(Matrix3 &inertia_tensor) {
+            inverse_inertia_tensor.set_inverse(inertia_tensor);
+        }
+        
+        void add_force(Vector3 &force) {
+            force_accumulator += force;
+            is_awake = true;
+        }
+        
+        void clear_accumulator() {
+            force_accumulator = Vector3();
+            torque_accumulator = Vector3();
+        }
+        
+        void integrate(real duration) {
+            // Calculate linear acceleration
+            last_frame_accerlation = acceleration;
+            last_frame_accerlation.scale_vector_and_add(force_accumulator, inverse_mass);
+            
+            // Calculate angular acceleration
+            Vector3 angular_acceleration =
+                inverse_inertia_tensor_world.transform(torque_accumulator);
+            
+            // Update velocity
+            velocity.scale_vector_and_add(last_frame_accerlation, duration);
+            
+            // Update angular velocity
+            rotation.scale_vector_and_add(angular_acceleration, duration);
+            
+            // Calculate drag
+            velocity *= powf(linear_damping, duration);
+            rotation *= powf(angular_damping, duration);
+            
+            // Update positions
+            position.scale_vector_and_add(velocity, duration);
+                        
+            // Update angular positions
+            orientation.add_scaled_vector(rotation, duration);
+            
+            // Normalize orientation
+            calculate_derived_data();
+            
+            clear_accumulator();
+        }
+        
+        void add_force_at_point(
+            Vector3 &force,
+            Vector3 &point
+        ) {
+            Vector3 point_copy = point;
+            point_copy -= position;
+            
+            force_accumulator += force;
+            torque_accumulator += point_copy.vector_product(force);
+            
+            is_awake = true;
+        }
+        
+        void add_force_at_body_point(
+            Vector3 &force,
+            Vector3 &point
+        ) {
+            Vector3 piws = get_point_in_world_space(point);
+            add_force_at_point(force, piws);
+            
+            is_awake = true;
+        }
+    };
+    
+    
+    
+    class AngleAxis {
+    public:
+        real angle;
+        real x;
+        real y;
+        real z;
+        
+        AngleAxis() : x(0), y(0), z(0), angle(0) {}
+        AngleAxis(real angle, real x, real y, real z) : x(x), y(y), z(z), angle(angle) {}
+        AngleAxis(Quaternion &q) { from_quaternion(q); }
+        
+        void from_quaternion(Quaternion &q) {
+            angle = 2 * acosf(q.w);
+            x = q.x / sqrtf(1 - q.w * q.w);
+            y = q.y / sqrtf(1 - q.w * q.w);
+            z = q.z / sqrtf(1 - q.w * q.w);
+        }
+        
+        void print() {
+            printf("%%{angle: %f, x: %f, y: %f, z: %f}\n", angle, x, y, z);
+        }
     };
 
     /**

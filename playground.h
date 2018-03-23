@@ -43,6 +43,7 @@ namespace Graphics {
      * Register callback to fire on keypress
      */
     void register_fire(std::function<void(void)> cb, int key);
+    void ext_key_callback(std::function<void(unsigned char, int, int)> cb);
     
     /**
      * Push back function to be called during display loop.

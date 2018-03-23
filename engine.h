@@ -40,6 +40,21 @@ namespace Physics {
         void pass_particles(Particles * p) { particles = p; }
         
     };
+    
+    
+    
+    class World {
+    public:
+        typedef std::vector<RigidBody> RigidBodies;
+        
+    protected:
+        RigidBodies bodies;
+        
+    public:
+        void start_frame();
+        void run_physics(real duration);
+        void integrate(real duration);
+    };
 }
 
 #endif /* defined(__MSIM495__engine__) */

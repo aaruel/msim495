@@ -7,8 +7,8 @@
 //
 
 
-#include "groundforce.h"
+#include "fsexample.h"
 
 int main(int argc, char ** argv) {
-    return GroundForce::main(argc, argv);
+    return FlightSimExample::main(argc, argv);
 }
