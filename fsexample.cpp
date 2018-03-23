@@ -33,6 +33,7 @@ class FlightSimDemo
     Physics::AeroControl rudder;
     Physics::Aero tail;
     Physics::RigidBody aircraft;
+    Physics::PropulsionForce propel;
     Physics::ForceRegistry registry;
 
     Physics::Vector3 windspeed;
@@ -116,6 +117,7 @@ windspeed(0,0,0)
     registry.add(&aircraft, &right_wing);
     registry.add(&aircraft, &rudder);
     registry.add(&aircraft, &tail);
+    registry.add(&aircraft, &propel);
 }
 
 FlightSimDemo::~FlightSimDemo()
@@ -220,10 +222,11 @@ void FlightSimDemo::text() {
     char buffer[256];
     sprintf(
         buffer,
-        "Altitude: %.1f | Speed %.1f",
+        "Altitude: %.1f | Speed %.1f | Throttle %.1f | Thrust Angle %.1f",
         aircraft.get_position().y,
-        aircraft.get_velocity().magnitude()
-        );
+        aircraft.get_velocity().magnitude(),
+        propel.get_propel(), propel.get_thrust_angle()
+    );
     glColor3f(0,0,0);
     Graphics::render_text(buffer, Physics::Vector3(10.f, 24.f, 0));
 
@@ -243,11 +246,6 @@ void FlightSimDemo::update()
 
     // Start with no forces or acceleration.
     aircraft.clear_accumulator();
-
-    // Add the propeller force
-    Physics::Vector3 propulsion(-10.0f, 0, 0);
-    propulsion = aircraft.get_transform().transform_direction(propulsion);
-    aircraft.add_force(propulsion);
 
     // Add the forces acting on the aircraft.
     registry.update_forces(duration);
@@ -317,6 +315,26 @@ void FlightSimDemo::key(unsigned char key)
     case 'r': case 'R':
         resetPlane();
         break;
+        
+    case 'f': case 'F':
+        propel.increment_propel(0.5);
+        break;
+        
+    case 'v': case 'V':
+        propel.increment_propel(-0.5);
+        break;
+        
+    case 'c': case 'C':
+        propel.set_propel(0);
+        break;
+        
+    case 'b': case 'B':
+        propel.increment_thrust_angle(5.f);
+        break;
+        
+    case 'g': case 'G':
+        propel.increment_thrust_angle(-5.f);
+        break;
 
     default: ;
 //        Application::key(key);
@@ -349,7 +367,6 @@ namespace FlightSimExample {
                 fsd.text();
             });
         });
-        
         
         Graphics::push_draw_pipeline([&fsd]() { fsd.update(); });
         

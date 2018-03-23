@@ -54,6 +54,10 @@ namespace Physics {
         return rads * (180.0 / pi);
     }
     
+    constexpr real degs_to_rads(real degs) {
+        return degs * (pi / 180);
+    }
+    
     class Vector3 {
     public:
         /*
