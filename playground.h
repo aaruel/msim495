@@ -14,7 +14,7 @@
 #define ESC_KEY 27
 #define ENTER_KEY 13
 
-namespace Physics { typedef float real; class Vector3; class Particle; }
+namespace Physics { typedef float real; class Plane; class Vector3; class Particle; }
 
 namespace Graphics {
     /**
@@ -61,6 +61,7 @@ namespace Graphics {
      */
     void draw_pyramid(Physics::Particle position);
     void draw_sphere(Physics::Particle p, Physics::real scale = 1);
+    void draw_sphere_no_color(Physics::Particle p, Physics::real scale = 1);
     void draw_ground();
     void draw_3d_rect(
         Physics::Particle p,
@@ -75,6 +76,8 @@ namespace Graphics {
     void draw_reference_points();
     void orthographic_render(std::function<void(unsigned, unsigned)> f);
     void render_text(const char * text, Physics::Vector3 p);
+    void draw_2d_plane(Physics::Plane p, bool override_color = false);
+    std::function<void(void)> random_color();
     
     /**
      * Call to execute initialized callbacks

@@ -7,8 +7,8 @@
 //
 
 
-#include "fsexample.h"
+#include "sniper.h"
 
 int main(int argc, char ** argv) {
-    return FlightSimExample::main(argc, argv);
+    return Sniper::main(argc, argv);
 }

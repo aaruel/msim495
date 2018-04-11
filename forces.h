@@ -179,20 +179,41 @@ namespace Physics {
     
     
     
+    /**
+     * Interface for derived classes to apply forces
+     * to RigidBodies in a more constructed manner
+     */
     class ForceGenerator {
     public:
+        /**
+         * RigidBody force generation interface
+         */
         virtual void update_force(RigidBody * body, real duration) = 0;
     };
     
     class Gravity : public ForceGenerator {
+        /**
+         * Gravity constant
+         */
         Vector3 gravity;
         
     public:
+        /**
+         * Constructor
+         */
         Gravity(Vector3 &gravity);
         
+        /**
+         * RigidBody force generation gravity implementation
+         */
         virtual void update_force(RigidBody * body, real duration);
     };
     
+    
+    
+    /**
+     * RigidBody attached spring force generator
+     */
     class Spring : public ForceGenerator {
         Vector3 connection_point_left;
         Vector3 connection_point_right;
@@ -203,6 +224,9 @@ namespace Physics {
         real rest_length;
         
     public:
+        /**
+         * Constructor
+         */
         Spring(
             Vector3 &left_connection_point,
             Vector3 &right_connection_point,
@@ -211,6 +235,9 @@ namespace Physics {
             real rest_length
         );
         
+        /**
+         * RigidBody force generation spring implementation
+         */
         virtual void update_force(RigidBody * body, real duration);
     };
     

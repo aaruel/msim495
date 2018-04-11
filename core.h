@@ -293,9 +293,15 @@ namespace Physics {
     };
     
     
-    
+    /**
+     * 4 element spacial rotation structure
+     */
     class Quaternion {
     public:
+    
+        /**
+         * 4 * 32bit data declaration
+         */
         union {
             struct {
                 union {real r; real w;}; // real
@@ -307,6 +313,9 @@ namespace Physics {
             real data[4];
         };
         
+        /**
+         * Constructors
+         */
         Quaternion() : r(1), i(0), j(0), k(0) {}
         
         Quaternion(
@@ -314,10 +323,17 @@ namespace Physics {
             real j, real k
         ) : r(r), i(i), j(j), k(k) {}
         
+        /**
+         * Print quaternion to console
+         */
         void print() {
             printf("%%{r: %f, i: %f, j: %f, k: %f}\n", r, i, j, k);
         }
         
+        /**
+         * Multiply all components by the magnitude
+         * Component magnitude becomes 1
+         */
         void normalize() {
             real d = r*r+i*i+j*j+k*k;
 
@@ -335,6 +351,34 @@ namespace Physics {
             k *= d;
         }
         
+        /**
+         * Scale XYZ components of input vector
+         * Rotate input by (this)
+         * Add input to (this)
+         */
+        void add_scaled_vector(Vector3 vector, real scale) {
+            Quaternion q(
+                0,
+                vector.x * scale,
+                vector.y * scale,
+                vector.z * scale
+            );
+            
+            q *= *this;
+            r += q.r * ((real)0.5);
+            i += q.i * ((real)0.5);
+            j += q.j * ((real)0.5);
+            k += q.k * ((real)0.5);
+        }
+
+        void rotate_by_vector(Vector3& vector) {
+            Quaternion q(0, vector.x, vector.y, vector.z);
+            (*this) *= q;
+        }
+        
+        /**
+         * Operators
+         */
         void operator *=(Quaternion &multiplier)
         {
             Quaternion q = *this;
@@ -359,36 +403,15 @@ namespace Physics {
                 + q.i*multiplier.j - q.j*multiplier.i
             );
         }
-        
-        void add_scaled_vector(Vector3 vector, real scale) {
-            Quaternion q(
-                0,
-                vector.x * scale,
-                vector.y * scale,
-                vector.z * scale
-            );
-            
-            q *= *this;
-            r += q.r * ((real)0.5);
-            i += q.i * ((real)0.5);
-            j += q.j * ((real)0.5);
-            k += q.k * ((real)0.5);
-        }
-
-        void rotate_by_vector(Vector3& vector) {
-            Quaternion q(0, vector.x, vector.y, vector.z);
-            (*this) *= q;
-        }
     };
     
     
     
-    class Matrix3 {
-    /*
-     * Coincidentially, I have made SIMD implementations of Matrix4 and Vector4
-     * in the past, but it's in C and not exactly wieldy to reimplement in C++
-     * https://github.com/aaruel/CSERW/blob/master/math/mathMatrix.h
+    /**
+     * 3x3 Matrix implementation
+     * inherently inelegant :(
      */
+    class Matrix3 {
     public:
         typedef real mat3x3[9];
         mat3x3 data;
@@ -545,6 +568,10 @@ namespace Physics {
     
     
     
+    /**
+     * 4x4 Matrix implementation
+     * inherently inelegant :(
+     */
     class Matrix4 {
     public:
         typedef real mat4x4[12];
@@ -891,6 +918,9 @@ namespace Physics {
     
     
     
+    /**
+     * AngleAxis implementation just for testing
+     */
     class AngleAxis {
     public:
         real angle;

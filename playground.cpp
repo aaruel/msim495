@@ -14,6 +14,7 @@
 #include <math.h>
 #include <vector>
 #include "core.h"
+#include "collisionengine.h"
 
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
@@ -29,6 +30,9 @@
 #define KEY_CACHE_SIZE 255
 #define COLOR_SKY 0.196078f, 0.6f, 0.8f, 1.0f
 #define COLOR_GROUND 0.35f, 0.5f, 0.28f, 1.0f
+#define COLOR_OBJECT 0.75f, 0.75f, 0.75f
+#define COLOR_BLACK 0.0f, 0.0f, 0.0f, 1.0f
+#define COLOR_WHITE 1.0f, 1.0f, 1.0f, 1.0f
 
 // Pseudo-class to deal with C-API
 namespace Graphics {
@@ -93,7 +97,7 @@ namespace Graphics {
     }
     
     void gl_init() {
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Set background color to black and opaque
+        glClearColor(COLOR_BLACK); // Set background color to black and opaque
         glClearDepth(1.0f);                   // Set background depth to farthest
         glEnable(GL_DEPTH_TEST);   // Enable depth testing for z-culling
         glEnable(GL_CULL_FACE);
@@ -199,6 +203,14 @@ namespace Graphics {
             glutBitmapCharacter(GLUT_BITMAP_9_BY_15, *c);
         }
     }
+    
+    std::function<void(void)> random_color() {
+        auto r = [](){return (Physics::real)((rand() % 128) + 128) / 255.f;};
+        Physics::real x = r(), y = r(), z = r();
+        return [=](){
+            glColor3f(x, y, z);
+        };
+    }
 
     void draw_pyramid(Physics::Particle p) {
         Physics::Vector3 position = p.get_position();
@@ -229,12 +241,40 @@ namespace Graphics {
         glPopMatrix();
     }
     
-    void draw_sphere(Physics::Particle p, Physics::real scale) {
+    void _draw_sphere(Physics::Particle p, Physics::real scale, bool override_color) {
         Physics::Vector3 position = p.get_position();
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
-        glColor3f(0.75f, 0.75f, 0.75f);
+        if (!override_color) glColor4f(COLOR_WHITE);
         glutSolidSphere(scale, 50, 50);
+        glPopMatrix();
+    }
+    
+    void draw_sphere(Physics::Particle p, Physics::real scale) {
+        _draw_sphere(p, scale, false);
+    }
+    
+    void draw_sphere_no_color(Physics::Particle p, Physics::real scale) {
+        _draw_sphere(p, scale, true);
+    }
+    
+    void draw_2d_plane(Physics::Plane p, bool override_color) {
+        // perpendicular
+        Physics::Vector3 left(p.direction.y, -p.direction.x, 0);
+        // invert
+        Physics::Vector3 right = left;
+        right.invert();
+        
+        left *= (Physics::real)(window_height * window_width);
+        right *= (Physics::real)(window_height * window_width);
+        
+        glPushMatrix();
+        glTranslatef(p.position.x, p.position.y, 0);
+        if (!override_color) glColor4f(COLOR_WHITE);
+        glBegin(GL_LINES);
+            glVertex2f(left.x, left.y);
+            glVertex2f(right.x, right.y);
+        glEnd();
         glPopMatrix();
     }
     
@@ -263,7 +303,7 @@ namespace Graphics {
             rotation_axis_y,
             rotation_axis_z
         );
-        glColor3f(0.75f, 0.75f, 0.75f);
+        glColor4f(COLOR_WHITE);
         glBegin(GL_QUADS);
             Physics::Vector3 top_back_left
                 = Physics::Vector3{-1.f*width,  1.f*height, -1.f*length};

@@ -17,5 +17,6 @@
 #include "forces.h"
 #include "collision.h"
 #include "engine.h"
+#include "collisionengine.h"
 
 #endif

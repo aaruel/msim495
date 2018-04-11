@@ -118,11 +118,6 @@ namespace Physics {
             right_movement.clear();
         }
         
-//        printf("Left movement: ");
-//        left_movement.print();
-//        printf("Right movement: ");
-//        right_movement.print();
-        
         // Apply delta movements
         left->set_position(
             left->get_position() + left_movement
