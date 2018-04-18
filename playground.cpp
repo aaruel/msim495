@@ -245,7 +245,7 @@ namespace Graphics {
         Physics::Vector3 position = p.get_position();
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
-        if (!override_color) glColor4f(COLOR_WHITE);
+        if (!override_color) glColor3f(COLOR_OBJECT);
         glutSolidSphere(scale, 50, 50);
         glPopMatrix();
     }

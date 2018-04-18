@@ -251,7 +251,7 @@ void FlightSimDemo::update()
     registry.update_forces(duration);
 
     // Update the aircraft's physics.
-    aircraft.integrate(duration);
+    aircraft.intergrate(duration);
 
     // Do a very basic collision detection and response with the ground.
     Physics::Vector3 pos = aircraft.get_position();

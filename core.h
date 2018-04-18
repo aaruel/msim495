@@ -761,6 +761,38 @@ namespace Physics {
             array[15] = (float)1;
         }
         
+        void print() {
+            printf(
+                "-                     -\n"
+                "| %.2f %.2f %.2f %.2f |\n"
+                "| %.2f %.2f %.2f %.2f |\n"
+                "| %.2f %.2f %.2f %.2f |\n"
+                "| %.2f %.2f %.2f %.2f |\n"
+                "-                     -\n",
+                data[0], data[1], data[2], data[3],
+                data[4], data[5], data[6], data[7],
+                data[8], data[9], data[10], data[11],
+                padding[0], padding[1], padding[2], padding[3]
+            );
+        }
+        
+        void print_gl() {
+            float datagl[16];
+            fill_GL_array(datagl);
+            printf(
+                "-                     -\n"
+                "| %.2f %.2f %.2f %.2f |\n"
+                "| %.2f %.2f %.2f %.2f |\n"
+                "| %.2f %.2f %.2f %.2f |\n"
+                "| %.2f %.2f %.2f %.2f |\n"
+                "-                     -\n",
+                datagl[ 0], datagl[ 1], datagl[ 2], datagl[ 3],
+                datagl[ 4], datagl[ 5], datagl[ 6], datagl[ 7],
+                datagl[ 8], datagl[ 9], datagl[10], datagl[11],
+                datagl[12], datagl[13], datagl[14], datagl[15]
+            );
+        }
+        
         static Vector3 world_to_local(Vector3 &world, Matrix4 transform) {
             return transform.transform_inverse(world);
         }
@@ -828,6 +860,7 @@ namespace Physics {
         Vector3 get_velocity() { return velocity; }
         Vector3 get_acceleration() { return acceleration; }
         Matrix4 get_transform() { return transform_matrix; }
+        Quaternion get_orientation() { return orientation; }
         
         void calculate_derived_data();
         
@@ -861,7 +894,8 @@ namespace Physics {
             torque_accumulator = Vector3();
         }
         
-        void integrate(real duration) {
+        // Breakpoints don't work if this function is named integrate...????
+        void intergrate(real duration) {
             // Calculate linear acceleration
             last_frame_accerlation = acceleration;
             last_frame_accerlation.scale_vector_and_add(force_accumulator, inverse_mass);
@@ -913,6 +947,28 @@ namespace Physics {
             add_force_at_point(force, piws);
             
             is_awake = true;
+        }
+        
+        void get_gl_transform(float matrix[16]) {
+            matrix[0] = (float)transform_matrix.data[0];
+            matrix[1] = (float)transform_matrix.data[4];
+            matrix[2] = (float)transform_matrix.data[8];
+            matrix[3] = 0;
+
+            matrix[4] = (float)transform_matrix.data[1];
+            matrix[5] = (float)transform_matrix.data[5];
+            matrix[6] = (float)transform_matrix.data[9];
+            matrix[7] = 0;
+
+            matrix[8] = (float)transform_matrix.data[2];
+            matrix[9] = (float)transform_matrix.data[6];
+            matrix[10] = (float)transform_matrix.data[10];
+            matrix[11] = 0;
+
+            matrix[12] = (float)transform_matrix.data[3];
+            matrix[13] = (float)transform_matrix.data[7];
+            matrix[14] = (float)transform_matrix.data[11];
+            matrix[15] = 1;
         }
     };
     

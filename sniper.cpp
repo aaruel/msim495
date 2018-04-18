@@ -196,7 +196,7 @@ namespace Sniper {
             // Operate on all bullets in queue
             for (int i = 0; i < bullets.size(); ++i) {
                 Bullet current_bullet = bullets[i];
-                Graphics::draw_sphere(current_bullet.get_position());
+                Graphics::draw_sphere(current_bullet.get_position(), 0.1);
                 
                 // get distances between all targets
                 int index = 0;

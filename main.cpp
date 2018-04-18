@@ -7,8 +7,10 @@
 //
 
 
+#include "collisiondetection.h"
+#include "test.h"
 #include "sniper.h"
-
 int main(int argc, char ** argv) {
-    return Sniper::main(argc, argv);
+//    return CollisionDetection::main(argc, argv);
+//    _main();
 }

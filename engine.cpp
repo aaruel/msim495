@@ -68,7 +68,7 @@ namespace Physics {
     void World::integrate(real duration) {
         RigidBodies::iterator b = bodies.begin();
         for (; b != bodies.end(); ++b) {
-            b->integrate(duration);
+            b->intergrate(duration);
         }
     }
     
