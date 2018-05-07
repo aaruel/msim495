@@ -474,19 +474,12 @@ namespace Physics {
             );
         }
         
-        void set_inverse(Matrix3 &m)
-        {
-            real t4  = m.data[0]*m.data[4];
-            real t6  = m.data[0]*m.data[5];
-            real t8  = m.data[1]*m.data[3];
-            real t10 = m.data[2]*m.data[3];
-            real t12 = m.data[1]*m.data[6];
-            real t14 = m.data[2]*m.data[6];
-
+        void set_inverse(Matrix3 &m) {
             // Calculate the determinant
             real t16 = (
-                t4*m.data[8] - t6*m.data[7] - t8*m.data[8]
-                + t10*m.data[7] + t12*m.data[5] - t14*m.data[4]
+                  m.data[0]*m.data[4]*m.data[8] - m.data[0]*m.data[5]*m.data[7]
+                - m.data[1]*m.data[3]*m.data[8] + m.data[2]*m.data[3]*m.data[7]
+                + m.data[1]*m.data[6]*m.data[5] - m.data[2]*m.data[6]*m.data[4]
             );
 
             // Make sure the determinant is non-zero.
@@ -497,11 +490,11 @@ namespace Physics {
             data[1] = -(m.data[1]*m.data[8]-m.data[2]*m.data[7])*t17;
             data[2] =  (m.data[1]*m.data[5]-m.data[2]*m.data[4])*t17;
             data[3] = -(m.data[3]*m.data[8]-m.data[5]*m.data[6])*t17;
-            data[4] =  (m.data[0]*m.data[8]-t14)*t17;
-            data[5] = -(t6-t10)*t17;
+            data[4] =  (m.data[0]*m.data[8]-m.data[2]*m.data[6])*t17;
+            data[5] = -(m.data[0]*m.data[5]-m.data[2]*m.data[3])*t17;
             data[6] =  (m.data[3]*m.data[7]-m.data[4]*m.data[6])*t17;
-            data[7] = -(m.data[0]*m.data[7]-t12)*t17;
-            data[8] =  (t4-t8)*t17;
+            data[7] = -(m.data[0]*m.data[7]-m.data[1]*m.data[6])*t17;
+            data[8] =  (m.data[0]*m.data[4]-m.data[1]*m.data[3])*t17;
         }
         
         Matrix3 inverse() {

@@ -7,10 +7,7 @@
 //
 
 
-#include "collisiondetection.h"
-#include "test.h"
-#include "sniper.h"
+#include "sailboat.h"
 int main(int argc, char ** argv) {
-//    return CollisionDetection::main(argc, argv);
-//    _main();
+    return Sailboat::main(argc, argv);
 }

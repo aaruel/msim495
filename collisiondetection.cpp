@@ -57,7 +57,7 @@ namespace CollisionDetection {
             set_mass(mass);
             set_damping(0.95, 0.8);
             Physics::Matrix3 tensor;
-            tensor.set_block_inertia_tensor(half, get_mass());
+            tensor.set_block_inertia_tensor(half, get_mass()*8);
             set_inertia_tensor(tensor);
             
             // Keep track of cube edges
